@@ -127,7 +127,7 @@ macro "let" x:term " ~ " y:term:max linebreak z:term : term => `(Ran.bind $y (fu
 
 instance [MeasurableSpace α]: Coe α (Ran α) := ⟨Ran.pure⟩
 
-def throw : Ran ℕ := 
+def throwDice : Ran ℕ := 
   let n ~ (ranNat 1 6)
   if n ≠ 6 then
     n
@@ -153,31 +153,17 @@ open BigOperators Finset
 theorem ranNat_integral (lo hi : Nat) (f : ℕ → ℝ≥0∞) : 
     ∫⁻ n, f n ∂(ranNat lo hi).μ = (1/(hi-lo+1) : ℝ≥0∞) *∑ n in Icc lo hi, f n := sorry
 
-#check filter
 
-set_option trace.Meta.Tactic.simp.rewrite true in
-theorem throw_pdf : throw.pdf' Measure.count = sorry := by
+-- set_option trace.Meta.Tactic.simp.rewrite true in
+theorem throwDice_pdf : throwDice.pdf' Measure.count = sorry := by
   conv => 
     lhs
-    unfold _root_.throw
+    unfold _root_.throwDice
     simp[-Finset.sum_boole]
+  sorry
 
 
 
-
-
-#exit
-
-#eval show IO Unit from do
-
-  let mut score : Array Nat := Array.mkArray 6 0
-  
-  for _ in [0:100000] do
-    let n ← ranNat 1 6 |>.get
-    let n := n-1
-    score := score.set! n (score[n]! + 1)
-  
-  IO.println score
-
+#eval _root_.throwDice.get
 
 
