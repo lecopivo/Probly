@@ -12,7 +12,7 @@ open ENNReal BigOperators Finset
 namespace Probly
 
 noncomputable
-local instance : Coe (Erased α) α := ⟨fun x => x.out⟩
+scoped instance : Coe (Erased α) α := ⟨fun x => x.out⟩
 
 abbrev erase (a : α) : Erased α := .mk a
 
@@ -139,7 +139,25 @@ theorem bind_pure_μ (x : Rand X) (f : X → Y) :
 -- we can't use do notation because Rand is not a monad right now (because of the [MeasurableSpace X] argument)
 -- this is a small hack to recover it a bit
 
-macro "let" x:term " ~ " y:term:max linebreak z:term : term => `(Rand.bind $y (fun $x => $z))
+macro "let" x:Lean.Parser.Term.funBinder " ~ " y:term:max Lean.Parser.semicolonOrLinebreak z:term : term => `(Rand.bind $y (fun $x => $z))
+
+open Lean in
+partial def _root_.Lean.Syntax.semicolonToNewline : Syntax → Syntax
+| .node info kind args => .node info kind (args.map fun s => semicolonToNewline s)
+| .atom info val => if val == ";" then .atom info "\n" else .atom info val
+| s => s
+
+@[app_unexpander Rand.bind] def unexpandRandBind : Lean.PrettyPrinter.Unexpander
+
+  | `($(_) $mx:term $f) => 
+    match f.raw with
+    | `(fun $x:term => $b:term) => do
+        let s ← `(let $x ~ $mx; $b)
+        pure s.raw -- .semicolonToNewline
+    | `($f) => do
+        let s ← `(let x ~ $mx; $f x)
+        pure s.raw -- .semicolonToNewline
+  | _ => throw ()
 
 
 ----------------------------------------------------------------------------------------------------
