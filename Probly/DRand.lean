@@ -1,4 +1,5 @@
 import Mathlib.MeasureTheory.Measure.VectorMeasure
+import Mathlib.Analysis.Calculus.FDeriv.Basic
 
 import Probly.Basic
 
@@ -8,87 +9,68 @@ open MeasureTheory ENNReal BigOperators Finset
 namespace Probly
 
 structure DRand (X : Type) [MeasurableSpace X] where
-  dμPos : Erased (Measure X)
-  dμNeg : Erased (Measure X)
-  finite_pos : IsFiniteMeasure dμPos.out
-  finite_neg : IsFiniteMeasure dμNeg.out
-  dμ_real_zero : dμPos.out ⊤ = dμNeg.out ⊤
-  -- drand : R → _root_.Rand X -- R should have [RealScalar R]
+  -- this should do the correct action on test functions and give up on non-smooth ones
+  -- there should be some integrability requirement on the test function too
+  -- question is can we enlarge the domain to:
+  --   1. differentiable function with or without compact support?
+  action : (X → ℝ) → ℝ
+  -- todo: require that action returns zero on non-test functions
 
-register_simp_attr rand_simp
+variable
+  {X} [NormedAddCommGroup X] [NormedSpace ℝ X] [MeasurableSpace X]
+  {Y} [NormedAddCommGroup Y] [NormedSpace ℝ Y] [MeasurableSpace Y]
 
-variable {X Y} [MeasurableSpace X] [MeasurableSpace Y]
+-- todo: some smoothenss
+theorem DRand.ext (x y : DRand X) : (∀ φ, x.action φ = y.action φ)→ x = y := sorry
 
-instance (x : DRand X) : IsFiniteMeasure (x.dμPos.out) := x.finite_pos
-instance (x : DRand X) : IsFiniteMeasure (x.dμNeg.out) := x.finite_neg
+instance : Zero (DRand X) := ⟨{
+  action := fun φ => 0
+}⟩
 
-instance : Zero (DRand X) := sorry
-instance : Add (DRand X) := sorry
-instance : SMul ℝ (DRand X) := sorry
+instance : Add (DRand X) := ⟨fun x y => {
+  action := fun φ => x.action φ + y.action φ
+}⟩
+
+noncomputable
+instance : SMul ℝ (DRand X) := ⟨fun s x => {
+  action := fun φ => s • (x.action φ)
+}⟩
+
+-- Extend `F` functional on test function to to a Y-valued functional.
+-- not every `f` can have such extension
+-- extension is valid if does not depend on the appxosimation of `f` by test functions
+noncomputable
+opaque testFunctionExtension
+  {X} -- X needs a predicat that it has a notion of test functions
+  {Y} [NormedAddCommGroup Y] [NormedSpace ℝ Y]
+  (F : (X → ℝ) → ℝ) (f : X → Y) : Y := sorry
+
+noncomputable
+def DRand.expectedValueChange (x : DRand X) (f : X → Y) : Y :=
+  testFunctionExtension x.action f
+
+@[rand_simp]
+theorem action_zero : (0 : DRand X).action φ = 0 := rfl
+
+-- todo: add some smoothenss assumption on `φ`
+@[rand_simp]
+theorem action_add (x y : DRand X) (φ : X → ℝ) : (x + y).action φ = x.action φ + y.action φ := rfl
+
+@[rand_simp]
+theorem action_smul (s : ℝ) (x : DRand X) (φ : X → ℝ) : (s • x).action φ = s • x.action φ := rfl
 
 
-def DRand.pure (x : X) : DRand X := {  
-  dμPos := erase {
-    measureOf := Measure.dirac x
-    empty := sorry
-    m_iUnion := sorry
-    mono := sorry
-    iUnion_nat := sorry
-    trimmed := sorry
-  }
-  dμNeg := erase {
-    measureOf := sorry -- (1 : Measure X) - Measure.dirac x
-    empty := sorry
-    m_iUnion := sorry
-    mono := sorry
-    iUnion_nat := sorry
-    trimmed := sorry
-  }
-  finite_pos := sorry
-  finite_neg := sorry
-  dμ_real_zero := sorry
+noncomputable
+def DRand.dpure (x dx : X) : DRand X := {
+  action := fun f => fderiv ℝ f x dx
  }
 
+noncomputable
 def DRand.bind (x : DRand X) (f : X → Rand Y) : DRand Y := {
-  dμPos := erase {
-    measureOf := fun A => ∫⁻ x', (f x').μ A ∂x.dμPos
-    empty := sorry
-    m_iUnion := sorry
-    mono := sorry
-    iUnion_nat := sorry
-    trimmed := sorry
-  }
-  dμNeg := erase {
-    measureOf := fun A => ∫⁻ x', (f x').μ A ∂x.dμNeg
-    empty := sorry
-    m_iUnion := sorry
-    mono := sorry
-    iUnion_nat := sorry
-    trimmed := sorry
-  }
-  finite_pos := sorry
-  finite_neg := sorry
-  dμ_real_zero := sorry
+  action := fun φ => x.action (fun x' => (∫ y', φ y' ∂(f x').μ))
 }
 
+noncomputable
 def Rand.dbind (x : Rand X) (f : X → DRand Y) : DRand Y := {
-  dμPos := erase {
-    measureOf := fun A => ∫⁻ x', (f x').dμPos A ∂x.μ
-    empty := sorry
-    m_iUnion := sorry
-    mono := sorry
-    iUnion_nat := sorry
-    trimmed := sorry
-  }
-  dμNeg := erase {
-    measureOf := fun A => ∫⁻ x', (f x').dμNeg A ∂x.μ
-    empty := sorry
-    m_iUnion := sorry
-    mono := sorry
-    iUnion_nat := sorry
-    trimmed := sorry
-  }
-  finite_pos := sorry
-  finite_neg := sorry
-  dμ_real_zero := sorry
+  action := fun φ => ∫ x', (f x').action φ ∂x.μ
 }

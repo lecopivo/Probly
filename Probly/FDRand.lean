@@ -9,32 +9,34 @@ structure FDRand (X : Type) [MeasurableSpace X] where
   val  : Rand X
   dval : DRand X
 
-variable {X Y} [MeasurableSpace X] [MeasurableSpace Y]
+variable
+  {X} [NormedAddCommGroup X] [NormedSpace ℝ X] [MeasurableSpace X]
+  {Y} [NormedAddCommGroup X] [NormedSpace ℝ X] [MeasurableSpace Y]
 
-def FDRand.pure (x dx : X) : FDRand X := {  
+noncomputable
+def FDRand.dpure (x dx : X) : FDRand X := {
   val  := Rand.pure x
-  dval := DRand.pure dx
+  dval := DRand.dpure x dx
  }
 
+noncomputable
 def FDRand.bind (x : FDRand X) (f : X → FDRand Y) : FDRand Y := {
   val  := x.val.bind (fun x' => (f x').val)
-  dval := x.dval.bind (fun x' => (f x').val) + 
+  dval := x.dval.bind (fun x' => (f x').val) +
           x.val.dbind (fun x' => (f x').dval)
 }
 
 variable [NormedAddCommGroup X] [NormedSpace ℝ X] [NormedAddCommGroup Y] [NormedSpace ℝ Y]
 
-#check IsFiniteMeasure
+
 
 noncomputable
-def FDRand.expectedValue (x : FDRand X) (f : X → Y) : Y :=
-  ∫ x', f x' ∂(x.val.μ.out)
-  +
-  ∫ x', f x' ∂(x.dval.dμPos.out)
-  -
-  ∫ x', f x' ∂(x.dval.dμNeg.out)
+def FDRand.expectedValue (x : FDRand X) (f : X → Y) : Y := x.val.expectedValue f
 
-noncomputable 
+noncomputable
+def FDRand.expectedValueChange (x : FDRand X) (f : X → Y) : Y := x.dval.expectedValueChange f
+
+noncomputable
 def FDRand.mean (x : FDRand X) : X := x.expectedValue id
 
 macro "let" x:Lean.Parser.Term.funBinder " ~~ " y:term:max Lean.Parser.semicolonOrLinebreak z:term : term => `(bind₂ $y (fun $x => $z))
@@ -42,7 +44,7 @@ macro "let" x:Lean.Parser.Term.funBinder " ~~ " y:term:max Lean.Parser.semicolon
 
 @[app_unexpander FDRand.bind] def unexpandFDRandBind : Lean.PrettyPrinter.Unexpander
 
-  | `($(_) $mx:term $f) => 
+  | `($(_) $mx:term $f) =>
     match f.raw with
     | `(fun $x:term => $b:term) => do
         let s ← `(let $x ~~ $mx; $b)

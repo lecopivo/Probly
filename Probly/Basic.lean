@@ -3,6 +3,8 @@ import Mathlib.Probability.Density
 import Mathlib.Control.Random
 import Mathlib.Data.Erased
 
+import Probly.Simps
+
 
 -- import Probly.Erased
 
@@ -11,6 +13,7 @@ open MeasureTheory
 open ENNReal BigOperators Finset
 
 namespace Probly
+
 
 noncomputable
 scoped instance : Coe (Erased α) α := ⟨fun x => x.out⟩
@@ -24,6 +27,10 @@ variable {X Y} [MeasurableSpace X] [MeasurableSpace Y]
 @[simp]
 theorem lower_integral_direc (f : X → ℝ≥0∞) :
     (∫⁻ x', f x' ∂(Measure.dirac x)) = f x := sorry
+
+@[simp]
+theorem integral_direc {Y} [NormedAddCommGroup Y] [NormedSpace ℝ Y] (f : X → Y) :
+    (∫ x', f x' ∂(Measure.dirac x)) = f x := sorry
 
 @[simp]
 theorem dirac_of_set (x : X) (A : Set X) :
@@ -92,7 +99,7 @@ noncomputable
 def Rand.expectedValue (x : Rand X) (f : X → Y) : Y :=
   ∫ x', f x' ∂(x.μ.out)
 
-noncomputable 
+noncomputable
 def Rand.mean (x : Rand X) : X := x.expectedValue id
 end Expected
 
@@ -166,7 +173,7 @@ partial def _root_.Lean.Syntax.semicolonToNewline : Syntax → Syntax
 
 @[app_unexpander Rand.bind] def unexpandRandBind : Lean.PrettyPrinter.Unexpander
 
-  | `($(_) $mx:term $f) => 
+  | `($(_) $mx:term $f) =>
     match f.raw with
     | `(fun $x:term => $b:term) => do
         let s ← `(let $x ~ $mx; $b)
