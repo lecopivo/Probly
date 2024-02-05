@@ -3,6 +3,7 @@ import Mathlib.Probability.Density
 import Mathlib.Control.Random
 import Mathlib.Data.Erased
 
+
 -- import Probly.Erased
 
 open MeasureTheory
@@ -50,6 +51,7 @@ structure Rand (X : Type) [MeasurableSpace X] where
   We use `Erased` because `μ : Measure X` is usually noncomputable but we want keep
   computable `Rand X` -/
   μ : Erased (Measure X)
+  is_prob : IsProbabilityMeasure μ.out
   /-- Object that can generate random samples from `X` according to the prob measure `μ` -/
   rand : _root_.Rand X   -- ugh why doesn't mathlib have `Mathlib` namespace?
   -- TODO: Add some kind of specification that `rand` and `μ` are aligned.
@@ -60,6 +62,7 @@ noncomputable
 instance [MeasurableSpace X] : CoeFun (Erased (Measure X)) (fun _ => Set X → ℝ≥0∞) where
   coe μ A := μ.out A
 
+instance (x : Rand X) : IsProbabilityMeasure (x.μ.out) := x.is_prob
 
 @[ext]
 theorem Rand.ext (x y : Rand X) : x.μ = y.μ → x.rand = y.rand → x = y := sorry
@@ -72,9 +75,6 @@ def Rand.get (x : Rand X) : IO X := do
   pure res
 
 
------------------------
--- Monadic structure --
------------------------
 
 noncomputable
 def Rand.pdf' (x : Rand X) (ν : Measure X) : X → ℝ≥0∞ :=
@@ -85,10 +85,26 @@ noncomputable
 abbrev Rand.pdf {X} [MeasureSpace X] (x : Rand X) : X → ℝ≥0∞ := x.pdf' MeasureSpace.volume
 
 
+section Expected
+variable [NormedAddCommGroup X] [NormedSpace ℝ X] [NormedAddCommGroup Y] [NormedSpace ℝ Y]
+
+noncomputable
+def Rand.expectedValue (x : Rand X) (f : X → Y) : Y :=
+  ∫ x', f x' ∂(x.μ.out)
+
+noncomputable 
+def Rand.mean (x : Rand X) : X := x.expectedValue id
+end Expected
+
+
+-----------------------
+-- Monadic structure --
+-----------------------
+
 def Rand.pure (x : X) : Rand X where
   μ := erase (Measure.dirac x)
+  is_prob := sorry
   rand := Pure.pure x
-
 
 def Rand.bind (x : Rand X) (f : X → Rand Y) : Rand Y where
   μ := erase {
@@ -99,6 +115,7 @@ def Rand.bind (x : Rand X) (f : X → Rand Y) : Rand Y where
     m_iUnion := sorry
     trimmed := sorry
   }
+  is_prob := sorry
   rand := do (f (← x.rand)).rand
 
 instance [MeasurableSpace α]: Coe α (Rand α) := ⟨Rand.pure⟩
@@ -167,6 +184,7 @@ partial def _root_.Lean.Syntax.semicolonToNewline : Syntax → Syntax
 /-- Random natural number in the range `lo ≤ n ≤ hi`. -/
 def randNat (lo hi : ℕ) : Rand ℕ where
   μ := erase Measure.count
+  is_prob := sorry
   rand := fun g => do
     let g : StdGen := g.down
     let (n,g) := _root_.randNat g lo hi
