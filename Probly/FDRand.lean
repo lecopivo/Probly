@@ -112,18 +112,17 @@ open Lean Parser
 -- Expected Value and Change -----------------------------------------------------------------------
 ----------------------------------------------------------------------------------------------------
 
-noncomputable
-def expectedValueAndChange (x : FDRand X) (φ : X → Y) : Y×Y := (x.val.E φ, x.dval.dE φ)
+-- noncomputable
+-- def expectedValueAndChange (x : FDRand X) (φ : X → Y) : Y×Y := (x.val.E φ, x.dval.dE φ)
 
-@[rand_simp,simp]
 noncomputable
-abbrev fdE (x : FDRand X) (φ : X → Y) : Y×Y := x.expectedValueAndChange φ
+def fdE (x : FDRand X) (φ : X → Y) : Y×Y := (x.val.E φ, x.dval.dE φ)
 
 @[rand_simp,simp]
 theorem fdpure_fdE (x dx : X) (φ : X → Y) :
     (fdpure x dx).fdE φ = (φ x, fderiv ℝ φ x dx) := by
 
-  simp (disch:=sorry) only [fdpure,fdE,expectedValueAndChange,rand_simp]
+  simp (disch:=sorry) only [fdpure,fdE,rand_simp]
 
 @[rand_simp,simp]
 theorem bind_fdE (x : FDRand X) (f : X → FDRand Y) (φ : Y → Z) :
@@ -132,7 +131,7 @@ theorem bind_fdE (x : FDRand X) (f : X → FDRand Y) (φ : Y → Z) :
     let a := x.fdE (fun x' => (f x').fdE φ)
     (a.1.1,a.2.1+a.1.2) := by
 
-  simp (disch:=sorry) only [bind,fdpure,fdE,expectedValueAndChange,rand_simp]
+  simp (disch:=sorry) only [bind,fdpure,fdE,rand_simp]
   ext
   . simp (disch:=sorry) only [rand_simp]
     sorry -- just propagate projection to the integral
@@ -140,11 +139,20 @@ theorem bind_fdE (x : FDRand X) (f : X → FDRand Y) (φ : Y → Z) :
     sorry -- just propagate projection to the integral
 
 
+theorem FDRand_mk_fdE (x : Rand X) (dx : DRand X) (φ : X → Y) :
+    (FDRand.mk x dx).fdE φ = (x.E φ, dx.dE φ) := by rfl
+
+
+@[rand_simp,simp]
+theorem ite_push_fdE {c} [Decidable c] (t f : FDRand X) (φ : X → Y) :
+    (if c then t else f).fdE φ = if c then t.fdE φ else f.fdE φ := by
+  if h : c then simp[h] else simp[h]
+
 noncomputable
 def fdmean (x : FDRand X) : X×X := x.fdE id
 
 theorem expectedValueAndChange_as_fdmean (x : FDRand X) (φ : X → Y) :
     x.fdE φ = (x.bind (fun x' => fdpure (φ x') 0)).fdmean := by
 
-  simp (disch:=sorry) only [rand_simp,mean,expectedValueAndChange,fdE,fdmean,bind,fdpure,id]
+  simp (disch:=sorry) only [rand_simp,mean,fdE,fdmean,bind,fdpure,id]
   simp

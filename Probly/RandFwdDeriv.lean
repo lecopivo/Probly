@@ -6,10 +6,7 @@ open MeasureTheory ENNReal BigOperators Finset
 
 namespace Probly
 
-noncomputable
-def randFwdDeriv {X} [NormedAddCommGroup X] [NormedSpace ℝ X] {Y} [MeasurableSpace Y]
-    (f : X → Rand Y) (x dx : X) : FDRand Y := ⟨f x, randDeriv f x dx⟩
-
+open Rand
 
 variable
   {W} [NormedAddCommGroup W] [NormedSpace ℝ W] [MeasurableSpace W]
@@ -20,7 +17,12 @@ variable
   {β} [MeasurableSpace β]
 
 
-@[rand_simp]
+
+----------------------------------------------------------------------------------------------------
+-- Lambda and Monadic Rules ------------------------------------------------------------------------
+----------------------------------------------------------------------------------------------------
+
+@[rand_simp,simp]
 theorem randFwdDeriv_const (a : Rand α) :
     randFwdDeriv (fun _ : W => a)
     =
@@ -30,7 +32,7 @@ theorem randFwdDeriv_const (a : Rand α) :
   simp only [rand_simp]
 
 
-@[rand_simp]
+@[rand_simp,simp]
 theorem randFwdDeriv_comp (f : Y → Rand Z) (g : X → Y)
     (hf : RandDifferentiable f) (hg : Differentiable ℝ g) :
     randFwdDeriv (fun x : X => (f (g x)))
@@ -40,39 +42,40 @@ theorem randFwdDeriv_comp (f : Y → Rand Z) (g : X → Y)
       let dy := fderiv ℝ g x dx
       randFwdDeriv f y dy := by
 
+  funext x dx
   unfold randFwdDeriv
-  simp (disch := first | apply hf | apply hg) only [rand_simp]
+  simp (disch := first | apply hf | apply hg) only [rand_simp,randDeriv_comp]
 
 
-@[rand_simp]
+@[rand_simp,simp]
 theorem FDRand.pure.arg_x.randFwdDeriv_rule (x : W → X) (hx : Differentiable ℝ x) :
-    randFwdDeriv (fun w => Rand.pure (x w))
+    randFwdDeriv (fun w => pure (x w))
     =
     fun w dw =>
-      FDRand.dpure (x w) (fderiv ℝ x w dw) := by
+      fdpure (x w) (fderiv ℝ x w dw) := by
 
-  unfold randFwdDeriv FDRand.dpure
+  unfold randFwdDeriv fdpure
   simp (disch:=first | apply hx | sorry) only [rand_simp]
   funext w dw
   rw [Rand.pure.arg_x.randDeriv_rule _ differentiable_id']
   simp
 
 
-@[rand_simp]
+@[rand_simp,simp]
 theorem FDRand.pure.arg_x.randFwdDeriv_rule_simple :
     randFwdDeriv (fun x : X => Rand.pure x)
     =
     fun x dx =>
-      FDRand.dpure x dx := by
+      fdpure x dx := by
 
-  unfold randFwdDeriv FDRand.dpure
+  unfold randFwdDeriv fdpure
   simp (disch:=first | apply hx | sorry) [rand_simp]
   funext w dw
   rw [Rand.pure.arg_x.randDeriv_rule _ differentiable_id']
   simp (disch:=first | apply hx | sorry) [rand_simp]
 
 
-@[rand_simp]
+@[rand_simp,simp]
 theorem Rand.bind.arg_xf.randFwdDeriv_rule (x : W → Rand α) (f : W → α → Rand β)
     (hx : RandDifferentiable x) (hf : ∀ x, RandDifferentiable (f · x)) :
     randFwdDeriv (fun w => (x w).bind (f w ·))
@@ -84,9 +87,13 @@ theorem Rand.bind.arg_xf.randFwdDeriv_rule (x : W → Rand α) (f : W → α →
 
 
 
-@[rand_simp]
-theorem ite.arg_tf.randFwdDeriv_rule {c} [Decidable c]
-    (t f : W → Rand α) (ht : RandDifferentiable t) (hf : RandDifferentiable f) :
+----------------------------------------------------------------------------------------------------
+-- Other Rules -------------------------------------------------------------------------------------
+----------------------------------------------------------------------------------------------------
+
+@[rand_simp,simp]
+theorem ite.arg_tf.randFwdDeriv_rule {c} [Decidable c] (t f : W → Rand α) :
     randFwdDeriv (fun w => if c then (t w) else (f w))
     =
-    fun w dw => if c then randFwdDeriv t w dw else randFwdDeriv f w dw := sorry
+    fun w dw => if c then randFwdDeriv t w dw else randFwdDeriv f w dw := by
+  if h : c then simp[h] else simp[h]

@@ -45,7 +45,7 @@ theorem deriv_measure_under_integral (f : Y → Rand Z) (g : X → Y) (φ : Z �
 -- Lambda and Monadic Rules ------------------------------------------------------------------------
 ----------------------------------------------------------------------------------------------------
 
-@[rand_simp]
+@[rand_simp,simp]
 theorem randDeriv_const (a : Rand α) :
     randDeriv (fun _ : W => a)
     =
@@ -58,6 +58,7 @@ theorem randDeriv_const (a : Rand α) :
              ContinuousLinearMap.zero_apply, DRand.action_zero]
 
 
+@[rand_simp,simp]
 theorem randDeriv_comp (f : Y → Rand Z) (g : X → Y)
     (hf : RandDifferentiable f) (hg : Differentiable ℝ g) :
     randDeriv (fun x : X => (f (g x)))
@@ -73,7 +74,7 @@ theorem randDeriv_comp (f : Y → Rand Z) (g : X → Y)
     [randDeriv, deriv_measure_under_integral, fderiv_id', ContinuousLinearMap.coe_id', id_eq]
 
 
-@[rand_simp]
+@[rand_simp,simp]
 theorem Rand.pure.arg_x.randDeriv_rule (x : W → X) (hx : Differentiable ℝ x) :
     randDeriv (fun w => Rand.pure (x w))
     =
@@ -89,7 +90,7 @@ theorem Rand.pure.arg_x.randDeriv_rule (x : W → X) (hx : Differentiable ℝ x)
   simp only [ContinuousLinearMap.coe_comp', Function.comp_apply]
 
 
-@[rand_simp]
+@[rand_simp,simp]
 theorem Rand.bind.arg_xf.randDeriv_rule (x : W → Rand α) (f : W → α → Rand β)
     (hx : RandDifferentiable x) (hf : ∀ x, RandDifferentiable (f · x)) :
     randDeriv (fun w => (x w).bind (f w ·))
@@ -109,7 +110,7 @@ theorem Rand.bind.arg_xf.randDeriv_rule (x : W → Rand α) (f : W → α → Ra
 -- Other Rules -------------------------------------------------------------------------------------
 ----------------------------------------------------------------------------------------------------
 
-@[rand_simp]
+@[rand_simp,simp]
 theorem ite.arg_tf.randDeriv_rule {c} [Decidable c] (t f : W → Rand α) :
     randDeriv (fun w => if c then (t w) else (f w))
     =

@@ -1,4 +1,4 @@
-import Probly.FwdRandDeriv
+import Probly.RandFwdDeriv
 
 open MeasureTheory ENNReal BigOperators Finset
 
@@ -23,13 +23,12 @@ def flip (x : ℝ) : Rand Bool := {
     -- pure (b, ← ULiftable.up g)
 }
 
-
 def dflip : DRand Bool := {
   action := fun φ => φ true - φ false
 }
 
 
-@[rand_simp]
+@[rand_simp,simp]
 theorem flip.pdf (x : ℝ) (hx : x ∈ Set.Icc 0 1) :
     (flip x).pdf' .count
     =
@@ -44,25 +43,26 @@ variable
   {α} [MeasurableSpace α]
   {β} [MeasurableSpace β]
 
-@[rand_simp]
+@[rand_simp,simp]
 theorem flip_integral (θ : ℝ) (f : Bool → X) :
     ∫ x, f x ∂(flip θ).μ = θ • f true + (1-θ) • f false := by
 
   simp [flip,rand_simp]
 
 theorem flip_expectedValue (θ : ℝ) (f : Bool → X) :
-    (flip θ).expectedValue f = θ • f true + (1-θ) • f false := by
+    (flip θ).E f = θ • f true + (1-θ) • f false := by
 
-  simp[Rand.expectedValue,rand_simp]
+  simp[Rand.E,Rand.expectedValue,rand_simp]
 
 theorem dflip_expectedValueChange (f : Bool → X) :
-    dflip.expectedValueChange f = f true - f false := by
+    dflip.dE f = f true - f false := by
 
-  simp[DRand.expectedValueChange,rand_simp,dflip]
-  sorry -- needs theorems about test function extensions
+  simp [DRand.dE,DRand.expectedValueChange,dflip]
+  apply testFunctionExtension_ext
+  intro φ y; simp [sub_smul]
 
 
-@[rand_simp]
+@[rand_simp,simp]
 theorem flip.arg_x.randDeriv_rule (x : W → ℝ) (hf : Differentiable ℝ x) :
     randDeriv (fun w => flip (x w))
     =
@@ -77,7 +77,7 @@ theorem flip.arg_x.randDeriv_rule (x : W → ℝ) (hf : Differentiable ℝ x) :
   sorry -- just differentiation and ring
 
 
-@[rand_simp]
+@[rand_simp,simp]
 theorem flip.arg_x.randFwdDeriv_rule (x : W → ℝ) (hf : Differentiable ℝ x) :
     randFwdDeriv (fun w => flip (x w))
     =
@@ -91,7 +91,7 @@ theorem flip.arg_x.randFwdDeriv_rule (x : W → ℝ) (hf : Differentiable ℝ x)
   simp
 
 
-@[rand_simp]
+@[rand_simp,simp]
 theorem flip.arg_x.randFwdDeriv_rule_siple :
     randFwdDeriv (fun x => flip x)
     =

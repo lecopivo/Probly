@@ -1,4 +1,8 @@
 import Probly.Flip
+import Mathlib.Analysis.Calculus.FDeriv.Comp
+import Mathlib.Analysis.Calculus.FDeriv.Add
+import Mathlib.Analysis.Calculus.FDeriv.Mul
+
 
 open MeasureTheory ENNReal BigOperators Finset
 
@@ -26,10 +30,10 @@ theorem push_to_if {c} [Decidable c] (f : α → β) (a a' : α) :
     f (if c then a else a') = if c then f a else f a' := sorry
 
 
-#check (randFwdDeriv test θ 1).dval.expectedValueChange id
+#check (randFwdDeriv test θ 1).fdE id
   rewrite_by
   unfold test
-  simp (disch:=sorry) only [rand_simp]
+  simp (config := {zeta:=false}) (disch:=sorry) [rand_simp]
   simp only [FDRand.bind, FDRand.dpure,rand_simp]
 
   simp only [push_to_if FDRand.val,
@@ -52,20 +56,20 @@ variable (φ : ℝ → ℝ)
   simp (disch:=sorry) only [rand_simp]
   simp only [FDRand.bind, FDRand.dpure, rand_simp]
 
-  conv => 
+  conv =>
     enter [2]
     enter [2,x']
     simp only [push_to_if FDRand.dval]
     simp only [push_to_if (DRand.action · φ),rand_simp]
 
-  conv => 
+  conv =>
     enter [1]
     simp only [push_to_if FDRand.val]
     simp only [rand_simp,id,dflip]
     simp only [ite_true, ite_false,rand_simp]
     simp only [erase_out]
-  
-  
+
+
 
 noncomputable
 def _root_.Bool.toReal (b : Bool) : ℝ := if b then 1 else 0
@@ -107,4 +111,3 @@ def test2 (θ : ℝ) : Rand ℝ :=
     unfold test
     simp [rand_simp,flip]
     enter[y]
-    
