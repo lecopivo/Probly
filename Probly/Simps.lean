@@ -27,5 +27,5 @@ theorem integral_of_add_measure (f : α → X) (μ ν : Measure α) :
 
 
 @[rand_simp]
-theorem integral_of_dirac (f : α → X) (μ ν : Measure α) :
-    ∫ x, f x ∂(μ + ν) = ∫ x, f x ∂μ + ∫ x, f x ∂ν := sorry
+theorem integral_of_dirac (f : α → X) (a : α) :
+    ∫ x, f x ∂(Measure.dirac a) = f a := sorry

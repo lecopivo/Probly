@@ -11,7 +11,8 @@ structure FDRand (X : Type) [MeasurableSpace X] where
 
 variable
   {X} [NormedAddCommGroup X] [NormedSpace ℝ X] [MeasurableSpace X]
-  {Y} [NormedAddCommGroup X] [NormedSpace ℝ X] [MeasurableSpace Y]
+  {Y} [NormedAddCommGroup Y] [NormedSpace ℝ Y] [MeasurableSpace Y]
+  {Z} [NormedAddCommGroup Z] [NormedSpace ℝ Z] [MeasurableSpace Z]
 
 noncomputable
 def FDRand.dpure (x dx : X) : FDRand X := {
@@ -38,6 +39,18 @@ def FDRand.expectedValueChange (x : FDRand X) (f : X → Y) : Y := x.dval.expect
 
 noncomputable
 def FDRand.mean (x : FDRand X) : X := x.expectedValue id
+
+
+-- theorem hihi (x : FDRand X) (f : X → FDRand Y) (g : Y → Z) : 
+--     (x.bind f).expectedValueChange g 
+--     =
+--     (x.val.dbind (fun x => (f x).dval)).expectedValueChange g := by
+  
+--   simp [FDRand.bind,FDRand.expectedValueChange]
+
+
+
+
 
 macro "let" x:Lean.Parser.Term.funBinder " ~~ " y:term:max Lean.Parser.semicolonOrLinebreak z:term : term => `(bind₂ $y (fun $x => $z))
 

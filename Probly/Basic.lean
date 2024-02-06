@@ -69,6 +69,9 @@ noncomputable
 instance [MeasurableSpace X] : CoeFun (Erased (Measure X)) (fun _ => Set X → ℝ≥0∞) where
   coe μ A := μ.out A
 
+@[rand_simp,simp]
+theorem erase_out {α} (a : α) : (erase a).out = a := sorry
+
 instance (x : Rand X) : IsProbabilityMeasure (x.μ.out) := x.is_prob
 
 @[ext]
@@ -90,18 +93,6 @@ def Rand.pdf' (x : Rand X) (ν : Measure X) : X → ℝ≥0∞ :=
 
 noncomputable
 abbrev Rand.pdf {X} [MeasureSpace X] (x : Rand X) : X → ℝ≥0∞ := x.pdf' MeasureSpace.volume
-
-
-section Expected
-variable [NormedAddCommGroup X] [NormedSpace ℝ X] [NormedAddCommGroup Y] [NormedSpace ℝ Y]
-
-noncomputable
-def Rand.expectedValue (x : Rand X) (f : X → Y) : Y :=
-  ∫ x', f x' ∂(x.μ.out)
-
-noncomputable
-def Rand.mean (x : Rand X) : X := x.expectedValue id
-end Expected
 
 
 -----------------------
@@ -139,6 +130,39 @@ theorem Rand.pure_bind (x : X) (f : X → Rand Y) :
 theorem bind_pdf (ν : Measure Y) (x : Rand X) (f : X → Rand Y) :
     (x.bind f).pdf' ν = fun y => ∫⁻ x', ((f x').pdf' ν y) ∂x.μ := by
   funext y; simp[Rand.pdf',Rand.bind,Rand.pure]; sorry
+
+
+section Expected
+variable [NormedAddCommGroup X] [NormedSpace ℝ X] [NormedAddCommGroup Y] [NormedSpace ℝ Y]
+  [NormedAddCommGroup Z] [NormedSpace ℝ Z]
+
+noncomputable
+def Rand.expectedValue (x : Rand X) (f : X → Y) : Y :=
+  ∫ x', f x' ∂(x.μ.out)
+
+noncomputable
+def Rand.mean (x : Rand X) : X := x.expectedValue id
+
+
+@[rand_simp]
+theorem expectedValue_pure (x : X) (φ : X → Y) : 
+    (Rand.pure x).expectedValue φ = φ x := by simp[Rand.pure,Rand.expectedValue]
+
+@[rand_simp]
+theorem expectedValue_bind_pure (x : Rand X) (f : X → Y) (φ : Y → Z) : 
+    (x.bind (fun x' => Rand.pure (f x'))).expectedValue φ 
+    = 
+    x.expectedValue (fun x => φ (f x)) := by 
+
+  simp[Rand.pure,Rand.bind,Rand.expectedValue]
+  sorry
+
+
+theorem expectedValue_to_bind (x : Rand X) (φ : X → Y) :
+    x.expectedValue φ = (x.bind (fun x' => Rand.pure (φ x'))).mean := sorry
+
+end Expected
+
 
 -- I think this is true only almost everywhere. Thus false as stated
 theorem bind_μ_apply (x : Rand X) (f : X → Rand Y) (A : Set Y):
@@ -222,3 +246,6 @@ theorem pdf_pure (x : X) [DecidableEq X] :
     (Rand.pure x).pdf' Measure.count = fun x' => if x=x' then 1 else 0 := by
   conv => lhs; simp[Rand.pure,Rand.pdf']
   sorry
+
+
+

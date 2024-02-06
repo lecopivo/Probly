@@ -74,3 +74,51 @@ noncomputable
 def Rand.dbind (x : Rand X) (f : X → DRand Y) : DRand Y := {
   action := fun φ => ∫ x', (f x').action φ ∂x.μ
 }
+
+@[rand_simp]
+theorem smul_one_drand (x : DRand X) : (1:ℝ) • x = x := sorry
+
+
+@[rand_simp]
+theorem expecteValueChange_action (x : DRand X) (φ : X → ℝ) :
+    x.expectedValueChange φ = x.action φ := sorry
+
+
+@[rand_simp]
+theorem add_expectedValueChange (x y : DRand X) (φ : X → Y) :
+    (x + y).expectedValueChange φ 
+    = 
+    x.expectedValueChange φ + y.expectedValueChange φ := sorry
+
+
+-- opaque DRand.ρ (x : DRand X) (r : Rand X) : X → ℝ
+
+-- theorem DRand.bind_density (x : DRand X) (r : Rand X) (f : X → Rand Y) (φ : Y → ℝ) :
+--     (x.bind f).action φ = (r.bind f).expectedValue (fun x' => (x.ρ r) x' * φ x') := sorry
+
+-- theorem DRand.bind_as_rand_bind (x : DRand X) (f : X → Rand Y) (φ : Y → ℝ) :
+--     (x.bind f).action φ = sorry := sorry
+
+-- theorem drand_bind_pure (x : DRand X) (f : X → Y) :
+--     x.bind (fun x' => Rand.pure (f x')) = sorry := by
+  
+--   simp[DRand.bind,Rand.pure,rand_simp]
+
+@[rand_simp]
+theorem pure_action (x dx : X) : (DRand.dpure x dx).action φ = fderiv ℝ φ x dx := sorry
+
+
+@[rand_simp]
+theorem bind_action_eq_expectedValue (x : DRand X) (f : X → Rand Y) (φ : Y → ℝ) :
+    (x.bind f).action φ = x.action (fun x' => (f x').expectedValue φ) := by
+
+  simp only [DRand.bind,Rand.expectedValue, rand_simp]
+
+
+@[rand_simp]
+theorem dbind_action_eq_expectedValue (x : Rand X) (f : X → DRand Y) (φ : Y → ℝ) :
+    (x.dbind f).action φ = x.expectedValue (fun x' => (f x').action φ) := by
+
+  simp only [Rand.dbind,Rand.expectedValue, rand_simp]
+
+
