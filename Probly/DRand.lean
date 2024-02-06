@@ -1,7 +1,10 @@
 import Mathlib.MeasureTheory.Measure.VectorMeasure
 import Mathlib.Analysis.Calculus.FDeriv.Basic
+import Mathlib.Analysis.Calculus.FDeriv.Mul
+import Mathlib.Analysis.Calculus.Deriv.Basic
 
-import Probly.Basic
+import Probly.Rand
+import Probly.TestFunctionExtension
 
 
 open MeasureTheory ENNReal BigOperators Finset
@@ -16,15 +19,179 @@ structure DRand (X : Type) [MeasurableSpace X] where
   action : (X → ℝ) → ℝ
   -- todo: require that action returns zero on non-test functions
 
+
+-- can we define this somehow?
+-- maybe we need to assume that action is linear function and it accepts bundled morphism?
+-- This is necessary to define joinDR and joinRD which are usefull from theoretical perspective
+instance {X} [MeasurableSpace X] : MeasurableSpace (DRand X) := sorry
+
+noncomputable
+def randDeriv {X} [NormedAddCommGroup X] [NormedSpace ℝ X] {Y} [MeasurableSpace Y]
+    (f : X → Rand Y) (x dx : X) : DRand Y := {
+  -- differentiate `f` as a functin from `X` to the space of finite measures
+  -- with finite total variation and then split it to positive and negative part
+  action := fun φ => fderiv ℝ (fun x' => ∫ y, φ y ∂(f x').μ) x dx
+}
+
+
 variable
-  {X} [NormedAddCommGroup X] [NormedSpace ℝ X] [MeasurableSpace X]
-  {Y} [NormedAddCommGroup Y] [NormedSpace ℝ Y] [MeasurableSpace Y]
+  {X : Type} [NormedAddCommGroup X] [NormedSpace ℝ X] [MeasurableSpace X]
+  {Y : Type} [NormedAddCommGroup Y] [NormedSpace ℝ Y] [MeasurableSpace Y]
+  {Z : Type} [NormedAddCommGroup Z] [NormedSpace ℝ Z] [MeasurableSpace Z]
+  {W : Type} [NormedAddCommGroup W] [NormedSpace ℝ W] [MeasurableSpace W]
+
+namespace DRand
+open Rand
+
 
 -- todo: some smoothenss
-theorem DRand.ext (x y : DRand X) : (∀ φ, x.action φ = y.action φ)→ x = y := sorry
+theorem ext (x y : DRand X) : (∀ φ, x.action φ = y.action φ) → x = y := sorry
+
+
+----------------------------------------------------------------------------------------------------
+-- Semi monadic operations -------------------------------------------------------------------------
+----------------------------------------------------------------------------------------------------
+noncomputable
+
+def _root_.Probly.Rand.dpure (x dx : X) : DRand X := {
+  action := fun f => fderiv ℝ f x dx
+}
+noncomputable
+
+def bindDR (x : DRand X) (f : X → Rand Y) : DRand Y := {
+  action := fun φ => x.action (fun x' => (f x').E φ)
+}
+noncomputable
+
+def _root_.Probly.Rand.bindRD (x : Rand X) (f : X → DRand Y) : DRand Y := {
+  action := fun φ => x.E (fun x' => (f x').action φ)
+}
+noncomputable
+
+def _root_.Probly.Rand.joinRD (x : Rand (DRand X)) : DRand X := x.bindRD id
+noncomputable
+
+def joinDR (x : (DRand (Rand X))) : DRand X := x.bindDR id
+
+@[rand_simp]
+theorem dpure_action (x dx : X) : (Rand.dpure x dx).action φ = fderiv ℝ φ x dx := by
+  simp[Rand.dpure]
+
+
+
+----------------------------------------------------------------------------------------------------
+-- Expected value change ---------------------------------------------------------------------------
+----------------------------------------------------------------------------------------------------
+
+noncomputable
+def expectedValueChange (x : DRand X) (φ : X → Y) : Y :=
+  testFunctionExtension x.action φ
+
+noncomputable
+abbrev dE (x : DRand X) (φ : X → Y) : Y := x.expectedValueChange φ
+
+noncomputable
+def dmean (x : DRand X) : X := x.dE id
+
+@[rand_simp,simp]
+theorem dpure_dE (x dx : X) (φ : X → Y) :
+    (dpure x dx).dE φ = fderiv ℝ φ x dx := by
+
+  simp only [bindRD,dE,expectedValueChange,dpure,rand_simp]
+
+  apply testFunctionExtension_ext
+  intro φ y; dsimp;
+  simp (disch:=sorry) [fderiv_smul]
+
+
+@[rand_simp,simp]
+theorem bindRD_dE (x : Rand X) (f : X → DRand Y) (φ : Y → Z) :
+    (x.bindRD f).dE φ = x.E (fun x' => (f x').dE φ) := by
+
+  simp only [bindRD,dE,expectedValueChange,rand_simp,E,expectedValue]
+
+  apply testFunctionExtension_ext
+  intro φ y
+  simp only [testFunctionExtension_test_function]
+  sorry -- just linearity of integral
+
+
+@[rand_simp,simp]
+theorem bindDR_dE (x : DRand X) (f : X → Rand Y) (φ : Y → Z) :
+    (x.bindDR f).dE φ = x.dE (fun x' => (f x').E φ) := by
+
+  simp only [bindDR,dE,expectedValueChange,rand_simp, E,expectedValue]
+
+  apply testFunctionExtension_ext
+  intro φ y; symm; dsimp
+  -- linearity of integral before applying this
+  -- simp only [testFunctionExtension_test_function]
+  sorry
+
+
+----------------------------------------------------------------------------------------------------
+-- Monadic rules - one work only under computing expected value change -----------------------------
+----------------------------------------------------------------------------------------------------
+
+@[rand_simp, simp]
+theorem bindDR_pure (x : DRand X) (f : X → Y) (φ : Y → Z) :
+    (x.bindDR (fun x' => pure (f x'))).dE φ
+    =
+    x.dE (fun x' => φ (f x')) := by
+
+  simp only [bindDR,dE,expectedValueChange,rand_simp]
+  apply testFunctionExtension_ext
+  intro φ y; symm; dsimp
+  rw[testFunctionExtension_test_function]
+
+
+@[rand_simp, simp]
+theorem pure_bindRD (x : X) (f : X → DRand Y) :
+    (Rand.pure x).bindRD f = f x := by
+
+  simp only [bindRD,dE,expectedValueChange,rand_simp]
+
+
+-- This is the only unusual monadic rule
+@[rand_simp, simp]
+theorem bindRD_dpure (x : Rand X) (f df : X → Y) (φ : Y → Z) :
+    (x.bindRD (fun x' => dpure (f x') (df x'))).dE φ
+    =
+    x.E (fun x' => fderiv ℝ φ (f x') (df x')) := by
+
+  simp only [rand_simp]
+
+
+@[rand_simp, simp]
+theorem dpure_bindDR (x dx : X) (f : X → Rand Y) :
+    ((dpure x dx).bindDR f) = randDeriv f x dx := by
+
+  apply ext; intro φ
+
+  simp only [bindDR, dpure, dE, expectedValueChange, randDeriv,E,expectedValue]
+
+
+@[rand_simp, simp]
+theorem bindDR_bindDR (x : DRand X) (g : X → Rand Y) (f : Y → Rand Z) :
+    (x.bindDR g).bindDR f = (x.bindDR (fun x' => (g x').bind f)) := by
+
+  simp (disch:=sorry) only [bindDR,rand_simp]
+
+
+@[rand_simp, simp]
+theorem bindRD_bindDR (x : Rand X) (g : X → DRand Y) (f : Y → Rand Z) :
+    (x.bindRD g).bindDR f = x.bindRD (fun x' => (g x').bindDR f) := by
+
+  simp (disch:=sorry) only [bindDR,bindRD,rand_simp]
+
+
+
+----------------------------------------------------------------------------------------------------
+-- Arithmetic operations ---------------------------------------------------------------------------
+----------------------------------------------------------------------------------------------------
 
 instance : Zero (DRand X) := ⟨{
-  action := fun φ => 0
+  action := fun _ => 0
 }⟩
 
 instance : Add (DRand X) := ⟨fun x y => {
@@ -36,18 +203,6 @@ instance : SMul ℝ (DRand X) := ⟨fun s x => {
   action := fun φ => s • (x.action φ)
 }⟩
 
--- Extend `F` functional on test function to to a Y-valued functional.
--- not every `f` can have such extension
--- extension is valid if does not depend on the appxosimation of `f` by test functions
-noncomputable
-opaque testFunctionExtension
-  {X} -- X needs a predicat that it has a notion of test functions
-  {Y} [NormedAddCommGroup Y] [NormedSpace ℝ Y]
-  (F : (X → ℝ) → ℝ) (f : X → Y) : Y := sorry
-
-noncomputable
-def DRand.expectedValueChange (x : DRand X) (f : X → Y) : Y :=
-  testFunctionExtension x.action f
 
 @[rand_simp]
 theorem action_zero : (0 : DRand X).action φ = 0 := rfl
@@ -59,66 +214,11 @@ theorem action_add (x y : DRand X) (φ : X → ℝ) : (x + y).action φ = x.acti
 @[rand_simp]
 theorem action_smul (s : ℝ) (x : DRand X) (φ : X → ℝ) : (s • x).action φ = s • x.action φ := rfl
 
-
-noncomputable
-def DRand.dpure (x dx : X) : DRand X := {
-  action := fun f => fderiv ℝ f x dx
- }
-
-noncomputable
-def DRand.bind (x : DRand X) (f : X → Rand Y) : DRand Y := {
-  action := fun φ => x.action (fun x' => (∫ y', φ y' ∂(f x').μ))
-}
-
-noncomputable
-def Rand.dbind (x : Rand X) (f : X → DRand Y) : DRand Y := {
-  action := fun φ => ∫ x', (f x').action φ ∂x.μ
-}
-
 @[rand_simp]
 theorem smul_one_drand (x : DRand X) : (1:ℝ) • x = x := sorry
 
-
 @[rand_simp]
-theorem expecteValueChange_action (x : DRand X) (φ : X → ℝ) :
-    x.expectedValueChange φ = x.action φ := sorry
-
-
-@[rand_simp]
-theorem add_expectedValueChange (x y : DRand X) (φ : X → Y) :
-    (x + y).expectedValueChange φ 
-    = 
-    x.expectedValueChange φ + y.expectedValueChange φ := sorry
-
-
--- opaque DRand.ρ (x : DRand X) (r : Rand X) : X → ℝ
-
--- theorem DRand.bind_density (x : DRand X) (r : Rand X) (f : X → Rand Y) (φ : Y → ℝ) :
---     (x.bind f).action φ = (r.bind f).expectedValue (fun x' => (x.ρ r) x' * φ x') := sorry
-
--- theorem DRand.bind_as_rand_bind (x : DRand X) (f : X → Rand Y) (φ : Y → ℝ) :
---     (x.bind f).action φ = sorry := sorry
-
--- theorem drand_bind_pure (x : DRand X) (f : X → Y) :
---     x.bind (fun x' => Rand.pure (f x')) = sorry := by
-  
---   simp[DRand.bind,Rand.pure,rand_simp]
-
-@[rand_simp]
-theorem pure_action (x dx : X) : (DRand.dpure x dx).action φ = fderiv ℝ φ x dx := sorry
-
-
-@[rand_simp]
-theorem bind_action_eq_expectedValue (x : DRand X) (f : X → Rand Y) (φ : Y → ℝ) :
-    (x.bind f).action φ = x.action (fun x' => (f x').expectedValue φ) := by
-
-  simp only [DRand.bind,Rand.expectedValue, rand_simp]
-
-
-@[rand_simp]
-theorem dbind_action_eq_expectedValue (x : Rand X) (f : X → DRand Y) (φ : Y → ℝ) :
-    (x.dbind f).action φ = x.expectedValue (fun x' => (f x').action φ) := by
-
-  simp only [Rand.dbind,Rand.expectedValue, rand_simp]
-
-
+theorem add_dE (x y : DRand X) (φ : X → Y) :
+    (x + y).dE φ
+    =
+    x.dE φ + y.dE φ := sorry

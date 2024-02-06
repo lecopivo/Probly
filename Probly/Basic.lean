@@ -15,12 +15,6 @@ open ENNReal BigOperators Finset
 namespace Probly
 
 
-noncomputable
-scoped instance : Coe (Erased α) α := ⟨fun x => x.out⟩
-
-abbrev erase (a : α) : Erased α := .mk a
-
-attribute [coe] Erased.out
 
 variable {X Y} [MeasurableSpace X] [MeasurableSpace Y]
 
@@ -65,12 +59,7 @@ structure Rand (X : Type) [MeasurableSpace X] where
   --       I have no idea how to do that.
 
 
-noncomputable
-instance [MeasurableSpace X] : CoeFun (Erased (Measure X)) (fun _ => Set X → ℝ≥0∞) where
-  coe μ A := μ.out A
 
-@[rand_simp,simp]
-theorem erase_out {α} (a : α) : (erase a).out = a := sorry
 
 instance (x : Rand X) : IsProbabilityMeasure (x.μ.out) := x.is_prob
 
@@ -145,14 +134,14 @@ def Rand.mean (x : Rand X) : X := x.expectedValue id
 
 
 @[rand_simp]
-theorem expectedValue_pure (x : X) (φ : X → Y) : 
+theorem expectedValue_pure (x : X) (φ : X → Y) :
     (Rand.pure x).expectedValue φ = φ x := by simp[Rand.pure,Rand.expectedValue]
 
 @[rand_simp]
-theorem expectedValue_bind_pure (x : Rand X) (f : X → Y) (φ : Y → Z) : 
-    (x.bind (fun x' => Rand.pure (f x'))).expectedValue φ 
-    = 
-    x.expectedValue (fun x => φ (f x)) := by 
+theorem expectedValue_bind_pure (x : Rand X) (f : X → Y) (φ : Y → Z) :
+    (x.bind (fun x' => Rand.pure (f x'))).expectedValue φ
+    =
+    x.expectedValue (fun x => φ (f x)) := by
 
   simp[Rand.pure,Rand.bind,Rand.expectedValue]
   sorry
@@ -246,6 +235,3 @@ theorem pdf_pure (x : X) [DecidableEq X] :
     (Rand.pure x).pdf' Measure.count = fun x' => if x=x' then 1 else 0 := by
   conv => lhs; simp[Rand.pure,Rand.pdf']
   sorry
-
-
-

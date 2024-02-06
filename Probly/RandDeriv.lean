@@ -18,15 +18,6 @@ opaque RandDifferentiable {X} [NormedAddCommGroup X] [NormedSpace ℝ X] {Y} [Me
     (f : X → Rand Y) : Prop
 
 
-noncomputable
-def randDeriv {X} [NormedAddCommGroup X] [NormedSpace ℝ X] {Y} [MeasurableSpace Y]
-    (f : X → Rand Y) (x dx : X) : DRand Y := {
-  -- differentiate `f` as a functin from `X` to the space of finite measures
-  -- with finite total variation and then split it to positive and negative part
-  action := fun φ => deriv (fun t : ℝ => ∫ y, φ y ∂(f (x+t•dx)).μ) 0
-}
-
-
 section RandDeriv
 
 
@@ -43,12 +34,16 @@ variable
 -- todo: add condition that `φ` is a test function
 --       the definition of test function should admit `Z` to be discrete space or vector space
 @[rand_simp]
-theorem deriv_measure_under_integral {Z} [MeasurableSpace Z] (f : Y → Rand Z) (g : X → Y) (φ : Z → ℝ)
+theorem deriv_measure_under_integral (f : Y → Rand Z) (g : X → Y) (φ : Z → ℝ)
     (hf : RandDifferentiable f) (hg : Differentiable ℝ g) :
-    deriv (fun t : ℝ ↦ ∫ (y : Z), φ y ∂↑(f (g (x + t • dx))).μ) 0
+    fderiv ℝ (fun x' : X => ∫ (z : Z), φ z ∂↑(f (g x')).μ) x dx
     =
-    deriv (fun t : ℝ ↦ ∫ (y : Z), φ y ∂↑(f (g x + t • (fderiv ℝ g x) dx)).μ) 0 := sorry
+    fderiv ℝ (fun x' => ∫ (z : Z), φ z ∂(f x').μ) (g x) (fderiv ℝ g x dx) := sorry
 
+
+----------------------------------------------------------------------------------------------------
+-- Lambda and Monadic Rules ------------------------------------------------------------------------
+----------------------------------------------------------------------------------------------------
 
 @[rand_simp]
 theorem randDeriv_const (a : Rand α) :
@@ -59,11 +54,11 @@ theorem randDeriv_const (a : Rand α) :
   funext w dw
   apply DRand.ext
   intro φ
-  simp [randDeriv, rand_simp]
+  simp only [randDeriv, fderiv_const, Pi.zero_apply,
+             ContinuousLinearMap.zero_apply, DRand.action_zero]
 
 
-@[rand_simp]
-theorem randDeriv_comp {Z} [MeasurableSpace Z] (f : Y → Rand Z) (g : X → Y)
+theorem randDeriv_comp (f : Y → Rand Z) (g : X → Y)
     (hf : RandDifferentiable f) (hg : Differentiable ℝ g) :
     randDeriv (fun x : X => (f (g x)))
     =
@@ -74,21 +69,24 @@ theorem randDeriv_comp {Z} [MeasurableSpace Z] (f : Y → Rand Z) (g : X → Y)
 
   funext x dx
   apply DRand.ext; intro φ
-  simp [randDeriv, rand_simp]
-  simp (disch:=first | assumption | sorry) only [rand_simp]
+  simp (disch:=first | assumption | apply differentiable_id')
+    [randDeriv, deriv_measure_under_integral, fderiv_id', ContinuousLinearMap.coe_id', id_eq]
 
-#check fderiv
 
 @[rand_simp]
 theorem Rand.pure.arg_x.randDeriv_rule (x : W → X) (hx : Differentiable ℝ x) :
     randDeriv (fun w => Rand.pure (x w))
     =
-    fun w dw => DRand.dpure (x w) (fderiv ℝ x w dw) := by
+    fun w dw => dpure (x w) (fderiv ℝ x w dw) := by
 
   funext w dw
   apply DRand.ext; intro φ
-  simp [randDeriv, rand_simp, DRand.dpure, Rand.pure]
-  sorry
+  simp (disch:=first | assumption | sorry) only
+    [randDeriv, pure, Erased.out_mk, integral_dirac', dpure]
+  have h := @fderiv.comp ℝ _ _ _ _ _ _ _ _ _ _ x w φ sorry (hx w)
+  unfold Function.comp at h
+  rw[h]
+  simp only [ContinuousLinearMap.coe_comp', Function.comp_apply]
 
 
 @[rand_simp]
@@ -96,17 +94,20 @@ theorem Rand.bind.arg_xf.randDeriv_rule (x : W → Rand α) (f : W → α → Ra
     (hx : RandDifferentiable x) (hf : ∀ x, RandDifferentiable (f · x)) :
     randDeriv (fun w => (x w).bind (f w ·))
     =
-    fun w dw => (randDeriv x w dw).bind (f w · )
+    fun w dw => (randDeriv x w dw).bindDR (f w · )
                 +
-                (x w).dbind (fun x => randDeriv (f · x) w dw) := by
+                (x w).bindRD (fun x => randDeriv (f · x) w dw) := by
 
   funext w dw
   apply DRand.ext; intro φ
-  simp [randDeriv, rand_simp, DRand.bind, Rand.pure, dbind]
+  simp only [randDeriv, rand_simp, DRand.bindDR, bindRD, E, expectedValue]
+  simp (disch:=sorry) only [integral_bind]
   sorry
 
 
-
+----------------------------------------------------------------------------------------------------
+-- Other Rules -------------------------------------------------------------------------------------
+----------------------------------------------------------------------------------------------------
 
 @[rand_simp]
 theorem ite.arg_tf.randDeriv_rule {c} [Decidable c] (t f : W → Rand α) :
