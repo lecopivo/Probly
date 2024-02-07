@@ -35,7 +35,7 @@ macro "rand_fdE_as_E" x:term : conv =>
 
 
 open Lean Meta Elab.Term Parser.Tactic.Conv in
-elab " derive_prob_mean_fwdDeriv " f:term " by " t:convSeq : term => do
+elab " derive_mean_fwdDeriv " f:term " by " t:convSeq : term => do
 
   let e ← elabTerm (← `(term| (fun x dx => fwdDeriv ℝ (fun x' => Rand.mean ($f x')) x dx) rewrite_by $t)).raw none
 

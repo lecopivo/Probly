@@ -26,7 +26,7 @@ def test (θ : ℝ) : Rand ℝ :=
 set_option trace.Meta.Tactic.simp.rewrite true in
 noncomputable
 def dtest :=
-  derive_prob_mean_fwdDeriv
+  derive_mean_fwdDeriv
     (fun θ => test θ)
   by
     enter [θ,dθ]; dsimp
@@ -60,7 +60,7 @@ def test2 (θ : ℝ) : Rand ℝ :=
 set_option trace.Meta.Tactic.simp.rewrite true in
 noncomputable
 def dtest2 :=
-  derive_prob_mean_fwdDeriv
+  derive_mean_fwdDeriv
     (fun θ => test2 θ)
   by
     enter [θ,dθ]; dsimp
