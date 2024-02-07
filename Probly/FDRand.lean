@@ -2,6 +2,7 @@ import Mathlib.MeasureTheory.Measure.VectorMeasure
 import Mathlib.Logic.Function.Basic
 
 import Probly.DRand
+import Probly.FwdDeriv
 
 open MeasureTheory ENNReal BigOperators Finset
 
@@ -67,11 +68,21 @@ theorem bind_bind (x : FDRand X) (g : X → FDRand Y) (f : Y → FDRand Z) :
   . simp (disch:=sorry) only [bind,rand_simp]
 
 
-@[rand_simp,simp]
+-- @[rand_simp,simp]
 theorem bind_pure (f : X → FDRand Y) (x dx : X) :
     (fdpure x dx).bind f
     =
     ⟨(f x).val, randDeriv (fun x' => (f x').val) x dx + (f x).dval⟩ := by
+
+  simp only [bind,fdpure]
+  apply ext
+  . simp (disch:=sorry) only [rand_simp]
+  . simp only [rand_simp]
+
+
+@[rand_simp,simp]
+theorem bind_pure_zero (f : X → FDRand Y) (x : X) :
+    (fdpure x 0).bind f = f x := by
 
   simp only [bind,fdpure]
   apply ext
@@ -112,37 +123,29 @@ open Lean Parser
 -- Expected Value and Change -----------------------------------------------------------------------
 ----------------------------------------------------------------------------------------------------
 
--- noncomputable
--- def expectedValueAndChange (x : FDRand X) (φ : X → Y) : Y×Y := (x.val.E φ, x.dval.dE φ)
-
 noncomputable
 def fdE (x : FDRand X) (φ : X → Y) : Y×Y := (x.val.E φ, x.dval.dE φ)
 
-@[rand_simp,simp]
+noncomputable
+def fdE' (x : FDRand X) (φ : X → Y×Y) : Y×Y := (x.val.E (fun x => (φ x).1), x.dval.dE (fun x => (φ x).1) + x.val.E (fun x => (φ x).2))
+
+@[simp,rand_push_E]
 theorem fdpure_fdE (x dx : X) (φ : X → Y) :
     (fdpure x dx).fdE φ = (φ x, fderiv ℝ φ x dx) := by
 
   simp (disch:=sorry) only [fdpure,fdE,rand_simp]
 
-
-def finalize (x : (X×X)×(X×X)) : X×X := let y := x; (y.1.1,y.2.1+y.1.2)
-
-@[rand_simp,simp]
+@[simp,rand_push_E]
 theorem bind_fdE (x : FDRand X) (f : X → FDRand Y) (φ : Y → Z) :
     ((x.bind f).fdE φ)
     =
-    finalize (x.fdE (fun x' => (f x').fdE φ)) := by
+    (x.fdE' (fun x' => (f x').fdE φ)) := by
 
-  simp (disch:=sorry) only [bind,fdpure,fdE,rand_simp]
-  ext
-  . simp (disch:=sorry) only [rand_simp]
-    sorry -- just propagate projection to the integral
-  . simp (disch:=sorry) only [rand_simp]
-    sorry -- just propagate projection to the integral
+  simp (disch:=sorry) only [bind,fdpure,fdE,fdE',rand_simp,rand_push_E]
 
 
-@[rand_simp,simp]
-theorem FDRand_mk_zero_fdE (x : Rand X) :
+@[simp,rand_push_E]
+theorem FDRand_mk_zero_fdE (x : Rand X) (φ : X → X) :
     (FDRand.mk x 0).fdE φ = (x.E φ, (0 : X)) := by
   simp [fdE,DRand.dE]
   apply testFunctionExtension_ext
@@ -152,27 +155,22 @@ theorem FDRand_mk_zero_fdE (x : Rand X) :
 theorem FDRand_mk_fdE (x : Rand X) (dx : DRand X) (φ : X → Y) :
     (FDRand.mk x dx).fdE φ = (x.E φ, dx.dE φ) := by rfl
 
-
-def finalizeWith (p q : X → ℝ) (φ : X → Y) (x : X) : Y×Y := let y := φ x; (p x • y, q x • y)
+def _root_.Probly.weightByDensity (p q : ℝ) (y : Y) : Y×Y := (p • y, q • y)
+def _root_.Probly.weightByDensity' (p q : ℝ) (ydy : Y×Y) : Y×Y := (p • ydy.1, q • ydy.1 + p • ydy.2)
+def _root_.Probly.weightByDensityM' (p q : ℝ) (ydy : Rand (Y×Y)) : Rand (Y×Y) := let ydy' ~ ydy; pure (weightByDensity' p q ydy')
 
 theorem fdE_as_E {rx : FDRand X} {φ : X → Y} (rx' : Rand X) :
-  rx.fdE φ = rx'.E (finalizeWith (rx.val.pdf' rx'.μ) (rx.dval.density rx'.μ) φ) := sorry
+  rx.fdE φ = rx'.E (fun x => weightByDensity (rx.val.pdf' rx'.μ x) (rx.dval.density rx'.μ x) (φ x)) := sorry
 
-@[rand_simp,simp]
-theorem ite_push_fdE {c} [Decidable c] (t f : FDRand X) (φ : X → Y) :
-    (if c then t else f).fdE φ = if c then t.fdE φ else f.fdE φ := by
-  if h : c then simp[h] else simp[h]
+theorem fdE'_as_E {rx : FDRand X} {φ : X → Y×Y} (rx' : Rand X) :
+  rx.fdE' φ = rx'.E (fun x => weightByDensity' (rx.val.pdf' rx'.μ x) (rx.dval.density rx'.μ x) (φ x)) := sorry
 
 noncomputable
 def fdmean (x : FDRand X) : X×X := x.fdE id
 
+@[rand_pull_E]
 theorem expectedValueAndChange_as_fdmean (x : FDRand X) (φ : X → Y) :
     x.fdE φ = (x.bind (fun x' => fdpure (φ x') 0)).fdmean := by
 
   simp (disch:=sorry) only [rand_simp,mean,fdE,fdmean,bind,fdpure,id]
   simp
-
-
-@[rand_simp,simp]
-theorem finalize_pull_E (x : Rand ((X×X)×(X×X))) :
-    finalize x.mean = (let x' ~ x; pure (finalize x')).mean := sorry

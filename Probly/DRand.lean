@@ -172,7 +172,7 @@ theorem dpure_bindDR (x dx : X) (f : X → Rand Y) :
 theorem bindDR_bindDR (x : DRand X) (g : X → Rand Y) (f : Y → Rand Z) :
     (x.bindDR g).bindDR f = (x.bindDR (fun x' => (g x').bind f)) := by
 
-  simp (disch:=sorry) only [bindDR,rand_simp]
+  simp (disch:=sorry) only [bindDR,rand_simp,rand_push_E]
 
 
 @[rand_simp, simp]
@@ -246,3 +246,7 @@ def measure (x : DRand X) : SignedMeasure X :=
 noncomputable
 def density (x : DRand X) (μ : Measure X) : X → ℝ :=
   x.measure.rnDeriv μ
+
+@[simp,rand_simp]
+theorem density_smul (x : DRand X) (s : ℝ) (μ : Measure X) :
+    (s • x).density μ = fun x' => x.density μ x' := sorry

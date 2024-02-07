@@ -75,7 +75,7 @@ theorem dflip_expectedValueChange (f : Bool → X) :
   intro φ y; simp [sub_smul]
 
 
-@[rand_simp,simp]
+@[simp,rand_AD]
 theorem flip.arg_x.randDeriv_rule (x : W → ℝ) (hf : Differentiable ℝ x) :
     randDeriv (fun w => flip (x w))
     =
@@ -90,7 +90,7 @@ theorem flip.arg_x.randDeriv_rule (x : W → ℝ) (hf : Differentiable ℝ x) :
   sorry -- just differentiation and ring
 
 
-@[rand_simp,simp]
+@[simp,rand_AD]
 theorem flip.arg_x.randFwdDeriv_rule (x : W → ℝ) (hf : Differentiable ℝ x) :
     randFwdDeriv (fun w => flip (x w))
     =
@@ -104,7 +104,7 @@ theorem flip.arg_x.randFwdDeriv_rule (x : W → ℝ) (hf : Differentiable ℝ x)
   simp
 
 
-@[rand_simp,simp]
+@[simp,rand_AD]
 theorem flip.arg_x.randFwdDeriv_rule_siple :
     randFwdDeriv (fun x => flip x)
     =

@@ -1,4 +1,5 @@
 import Probly.Flip
+import Probly.Tactic
 
 import Mathlib.Analysis.Calculus.FDeriv.Comp
 import Mathlib.Analysis.Calculus.FDeriv.Add
@@ -6,53 +7,11 @@ import Mathlib.Analysis.Calculus.FDeriv.Mul
 
 import Mathlib.Lean.Expr
 
-import Mathlib.Tactic.LiftLets
-
 open MeasureTheory ENNReal BigOperators Finset
 
 namespace Probly
 
-open Lean in
-syntax (name := lift_lets) "lift_lets" (Parser.Tactic.config)? : conv
-
-open Lean Meta Elab Tactic Mathlib.Tactic Lean.Elab.Tactic.Conv in
-elab_rules : tactic
-  | `(conv| lift_lets) => do -- $[$cfg:config]? $[$loc:location]?
-    let lhs ← getLhs
-    let lhs' ← lhs.liftLets mkLetFVars {}
-    changeLhs lhs'
-
-open Lean Meta in
-simproc_decl push_fdE_into_let (FDRand.fdE _ _) := fun e => do
-  unless (e.isAppOfArity ``FDRand.fdE 7) do return .visit { expr := e}
-  IO.println s!"running push_let_fdE on {← ppExpr e}"
-  let f := e.getArg! 5
-  match f with
-  | .letE name type val body nonDep =>
-    let e' := .letE name type val (e.setArg 5 body) nonDep
-    IO.println s!"result: {← ppExpr e'}"
-    return .visit { expr := e' }
-  | _ => return .visit { expr := e}
-
-
--- open Lean Meta in
--- simproc_decl pull_let_fdE (Rand.E _ _) := fun e => do
---   unless (e.isAppOfArity ``Rand.E 7) do return .visit { expr := e}
---   IO.println s!"running pull_let_E on {← ppExpr e}"
---   let f := e.getArg! 5
---   match f with
---   | .letE name type val body nonDep =>
---     let e' := .letE name type val (e.setArg 5 body) nonDep
---     IO.println s!"result: {← ppExpr e'}"
---     return .visit { expr := e' }
---   | _ => return .visit { expr := e}
-
-
-variable (x : FDRand ℝ) (φ : ℝ → ℝ)
-
-#check  FDRand.fdE (let y := 1 + 1; x) φ
-  rewrite_by
-    simp (config:={zeta:=false}) only [push_fdE_into_let]
+macro "simp'" : conv => `(conv| simp (config := {zeta:=false}) (disch:=sorry))
 
 
 noncomputable
@@ -64,39 +23,26 @@ def test (θ : ℝ) : Rand ℝ :=
     Rand.pure (-θ/2)
 
 
-
-variable (θ : ℝ)
-
-
-#check (randFwdDeriv test θ 1)
-  rewrite_by
-  unfold test
-  simp (disch:=sorry) only [rand_simp]
-
-theorem push_to_if {c} [Decidable c] (f : α → β) (a a' : α) :
-    f (if c then a else a') = if c then f a else f a' := sorry
-
 set_option trace.Meta.Tactic.simp.rewrite true in
-#check (randFwdDeriv test θ 1).fdE id
-  rewrite_by
-  unfold test
-  conv =>
-    enter [1]
-    simp (config := {zeta:=false}) (disch:=sorry) only [rand_simp]
-  simp (config := {zeta:=false}) (disch:=sorry) [rand_simp,push_fdE_into_let]
+noncomputable
+def dtest :=
+  derive_prob_mean_fwdDeriv
+    (fun θ => test θ)
+  by
+    enter [θ,dθ]; dsimp
+    unfold test
 
-  simp (config := {zeta:=false}) only [FDRand.fdE_as_E (flip θ)]
+    rand_AD
+    rand_push_E
+    rand_fdE_as_E (flip θ)
+    -- rand_fdE_as_E (flip ((θ + 1/2)/2))
+    simp'
+    rand_pull_E
 
-  simp (config := {zeta:=false}) (disch:=sorry) only [Rand.expectedValue_as_mean]
 
-  simp (config := {zeta:=false}) (disch:=sorry) only [rand_simp]
-
-
-variable (φ : ℝ → ℝ)
 
 noncomputable
 def _root_.Bool.toReal (b : Bool) : ℝ := if b then 1 else 0
-
 
 noncomputable
 def test2 (θ : ℝ) : Rand ℝ :=
@@ -110,42 +56,19 @@ def test2 (θ : ℝ) : Rand ℝ :=
     else
       Rand.pure (-θ/2)
 
-#check ((randFwdDeriv test2 θ 1).fdE φ)
-  rewrite_by
-  unfold test2
-  conv =>
-    enter [1]
-    simp (config := {zeta:=false}) (disch:=sorry) only [rand_simp]
-  simp (config := {zeta:=false}) (disch:=sorry) [rand_simp,push_fdE_into_let]
 
-  simp (config := {zeta:=false}) only [FDRand.fdE_as_E (flip θ)]
+set_option trace.Meta.Tactic.simp.rewrite true in
+noncomputable
+def dtest2 :=
+  derive_prob_mean_fwdDeriv
+    (fun θ => test2 θ)
+  by
+    enter [θ,dθ]; dsimp
+    unfold test2
 
-  simp (config := {zeta:=false}) (disch:=sorry) only [Rand.expectedValue_as_mean]
-
-  simp (config := {zeta:=false}) (disch:=sorry) [rand_simp]
-
-
-#exit
-  -- conv =>
-  --   enter [1]
-  --   simp (config := {zeta:=false}) (disch:=sorry) only [rand_simp]
-  -- lift_lets
-  -- simp (config := {zeta:=false}) (disch:=sorry) [rand_simp]
-
-
-#check (randFwdDeriv test2 θ 1).fdE φ
-  rewrite_by
-  unfold test2
-  conv =>
-    enter [1]
-    simp (config := {zeta:=false}) (disch:=sorry) only [rand_simp]
-  lift_lets
-  simp (config := {zeta:=false}) (disch:=sorry) [rand_simp]
-
-
-
-#check (test θ).pdf' .count
-  rewrite_by
-    unfold test
-    simp [rand_simp,flip]
-    enter[y]
+    rand_AD
+    rand_push_E
+    rand_fdE_as_E (flip θ)
+    -- rand_fdE_as_E (flip ((θ + 1/2)/2))
+    simp'
+    rand_pull_E

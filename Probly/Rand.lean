@@ -209,29 +209,29 @@ def expectedValue (x : Rand X) (φ : X → Y) : Y :=
 noncomputable
 abbrev E (x : Rand X) (φ : X → Y) : Y := x.expectedValue φ
 
-@[rand_simp,simp]
+@[rand_simp,simp,rand_push_E]
 theorem pure_E (x : X) (φ : X → Y) :
     (pure x).E φ = φ x := by
   simp (disch:=sorry) only [E,expectedValue,rand_simp]
 
-@[rand_simp,simp]
+@[simp,rand_push_E]
 theorem bind_E (x : Rand X) (f : X → Rand Y) (φ : Y → Z) :
     (x.bind f).E φ = x.E (fun x' => (f x').E φ) := by
   simp (disch:=sorry) only [E,expectedValue,rand_simp]
 
-@[rand_simp,simp]
+@[rand_simp,simp,rand_push_E]
 theorem zero_E (x : Rand X)  :
     x.E (fun _ => (0 :Y )) = 0 := by
   simp only [E,expectedValue,integral_zero]
 
-
-@[rand_simp,simp]
+@[simp]
 theorem expectedValue_smul (x : Rand X) (φ : X → ℝ) (y : Y) :
     x.E (fun x' => φ x' • y) = x.E φ • y := by sorry
 
 noncomputable
 def mean (x : Rand X) : X := x.E id
 
+@[rand_pull_E]
 theorem expectedValue_as_mean (x : Rand X) (φ : X → Y) (hφ : Measurable φ) :
     x.E φ = (x.bind (fun x' => pure (φ x'))).mean := by
 
@@ -239,6 +239,7 @@ theorem expectedValue_as_mean (x : Rand X) (φ : X → Y) (hφ : Measurable φ) 
 
 theorem mean_add  (x : Rand X) (x' : X) : x.mean + x' = (HAdd.hAdd x  x').mean := sorry
 theorem mean_add' (x : Rand X) (x' : X) : x' + x.mean = (HAdd.hAdd x' x).mean  := sorry
+
 
 end ExpectedValue
 

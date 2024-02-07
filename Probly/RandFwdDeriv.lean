@@ -22,7 +22,7 @@ variable
 -- Lambda and Monadic Rules ------------------------------------------------------------------------
 ----------------------------------------------------------------------------------------------------
 
-@[rand_simp,simp]
+@[simp,rand_AD]
 theorem randFwdDeriv_const (a : Rand α) :
     randFwdDeriv (fun _ : W => a)
     =
@@ -32,7 +32,7 @@ theorem randFwdDeriv_const (a : Rand α) :
   simp only [rand_simp]
 
 
-@[rand_simp,simp]
+@[simp,rand_AD]
 theorem randFwdDeriv_comp (f : Y → Rand Z) (g : X → Y)
     (hf : RandDifferentiable f) (hg : Differentiable ℝ g) :
     randFwdDeriv (fun x : X => (f (g x)))
@@ -47,7 +47,7 @@ theorem randFwdDeriv_comp (f : Y → Rand Z) (g : X → Y)
   simp (disch := first | apply hf | apply hg) only [rand_simp,randDeriv_comp]
 
 
-@[rand_simp,simp]
+@[simp,rand_AD]
 theorem FDRand.pure.arg_x.randFwdDeriv_rule (x : W → X) (hx : Differentiable ℝ x) :
     randFwdDeriv (fun w => pure (x w))
     =
@@ -61,7 +61,7 @@ theorem FDRand.pure.arg_x.randFwdDeriv_rule (x : W → X) (hx : Differentiable �
   simp
 
 
-@[rand_simp,simp]
+@[simp,rand_AD]
 theorem FDRand.pure.arg_x.randFwdDeriv_rule_simple :
     randFwdDeriv (fun x : X => Rand.pure x)
     =
@@ -75,7 +75,7 @@ theorem FDRand.pure.arg_x.randFwdDeriv_rule_simple :
   simp (disch:=first | apply hx | sorry) [rand_simp]
 
 
-@[rand_simp,simp]
+@[simp,rand_AD]
 theorem Rand.bind.arg_xf.randFwdDeriv_rule (x : W → Rand α) (f : W → α → Rand β)
     (hx : RandDifferentiable x) (hf : ∀ x, RandDifferentiable (f · x)) :
     randFwdDeriv (fun w => (x w).bind (f w ·))
@@ -91,7 +91,7 @@ theorem Rand.bind.arg_xf.randFwdDeriv_rule (x : W → Rand α) (f : W → α →
 -- Other Rules -------------------------------------------------------------------------------------
 ----------------------------------------------------------------------------------------------------
 
-@[rand_simp,simp]
+@[simp,rand_AD]
 theorem ite.arg_tf.randFwdDeriv_rule {c} [Decidable c] (t f : W → Rand α) :
     randFwdDeriv (fun w => if c then (t w) else (f w))
     =
@@ -99,6 +99,14 @@ theorem ite.arg_tf.randFwdDeriv_rule {c} [Decidable c] (t f : W → Rand α) :
   if h : c then simp[h] else simp[h]
 
 
-@[rand_simp,simp]
+@[simp,rand_AD]
 theorem Rand.E.arg_x.fderiv_rule (f : X → Rand Y) (φ : Y → Z) (x dx : X) (hf : RandDifferentiable f) :
     fderiv ℝ (fun x' => (f x').E φ) x dx = ((randFwdDeriv f x dx).fdE φ).2 := sorry
+
+@[simp,rand_AD]
+theorem Rand.mean.arg_x.fderiv_rule (f : X → Rand Y) (x dx : X) (hf : RandDifferentiable f) :
+    fderiv ℝ (fun x' => (f x').mean) x dx = ((randFwdDeriv f x dx).fdmean).2 := sorry
+
+@[simp,rand_AD]
+theorem Rand.mean.arg_x.fwdDeriv_rule (f : X → Rand Y) (x dx : X) (hf : RandDifferentiable f) :
+    fwdDeriv ℝ (fun x' => (f x').mean) x dx = ((randFwdDeriv f x dx).fdmean) := sorry
