@@ -118,3 +118,5 @@ theorem ite.arg_tf.randDeriv_rule {c} [Decidable c] (t f : W → Rand α) :
 
   funext w dw
   if h : c then simp [h] else simp [h]
+
+  

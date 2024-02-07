@@ -1,12 +1,25 @@
 import Probly.Flip
+
 import Mathlib.Analysis.Calculus.FDeriv.Comp
 import Mathlib.Analysis.Calculus.FDeriv.Add
 import Mathlib.Analysis.Calculus.FDeriv.Mul
 
+import Mathlib.Tactic.LiftLets
 
 open MeasureTheory ENNReal BigOperators Finset
 
 namespace Probly
+
+open Lean in
+syntax (name := lift_lets) "lift_lets" (Parser.Tactic.config)? : conv
+
+open Lean Meta Elab Tactic Mathlib.Tactic Lean.Elab.Tactic.Conv in
+elab_rules : tactic
+  | `(conv| lift_lets) => do -- $[$cfg:config]? $[$loc:location]?
+    let lhs ← getLhs
+    let lhs' ← lhs.liftLets mkLetFVars {}
+    changeLhs lhs'
+
 
 noncomputable
 def test (θ : ℝ) : Rand ℝ :=
@@ -29,47 +42,17 @@ variable (θ : ℝ)
 theorem push_to_if {c} [Decidable c] (f : α → β) (a a' : α) :
     f (if c then a else a') = if c then f a else f a' := sorry
 
-
+set_option trace.Meta.Tactic.simp.rewrite true in
 #check (randFwdDeriv test θ 1).fdE id
   rewrite_by
   unfold test
+  conv => 
+    enter [1]
+    simp (config := {zeta:=false}) (disch:=sorry) only [rand_simp]
   simp (config := {zeta:=false}) (disch:=sorry) [rand_simp]
-  simp only [FDRand.bind, FDRand.dpure,rand_simp]
-
-  simp only [push_to_if FDRand.val,
-             push_to_if FDRand.dval,
-             push_to_if (DRand.action · id),
-             ← push_to_if Rand.pure,
-             rand_simp,ite_true,ite_false,dflip]
-
-  simp [id,rand_simp,Rand.expectedValue]
 
 
 variable (φ : ℝ → ℝ)
-
-
--- set_option trace.Meta.Tactic.simp.discharge true in
--- set_option trace.Meta.Tactic.simp.unify true in
-#check (randFwdDeriv test θ 1).dval.expectedValueChange φ
-  rewrite_by
-  unfold test
-  simp (disch:=sorry) only [rand_simp]
-  simp only [FDRand.bind, FDRand.dpure, rand_simp]
-
-  conv =>
-    enter [2]
-    enter [2,x']
-    simp only [push_to_if FDRand.dval]
-    simp only [push_to_if (DRand.action · φ),rand_simp]
-
-  conv =>
-    enter [1]
-    simp only [push_to_if FDRand.val]
-    simp only [rand_simp,id,dflip]
-    simp only [ite_true, ite_false,rand_simp]
-    simp only [erase_out]
-
-
 
 noncomputable
 def _root_.Bool.toReal (b : Bool) : ℝ := if b then 1 else 0
@@ -87,22 +70,38 @@ def test2 (θ : ℝ) : Rand ℝ :=
     else
       Rand.pure (-θ/2)
 
+#check (deriv fun θ => (test2 θ).E φ)
+  rewrite_by
+  
+  unfold deriv; simp (disch:=sorry) only [Rand.E.arg_x.fderiv_rule]
+
+  unfold test2
+  conv => 
+    enter [θ,1,1]
+    simp (config := {zeta:=false}) (disch:=sorry) only [rand_simp]
+
+  conv => 
+    enter [θ,1]
+    simp (config := {zeta:=false}) (disch:=sorry) only [rand_simp]
+    lift_lets
+  simp
+
+#exit
+  -- conv => 
+  --   enter [1]
+  --   simp (config := {zeta:=false}) (disch:=sorry) only [rand_simp]
+  -- lift_lets
+  -- simp (config := {zeta:=false}) (disch:=sorry) [rand_simp]
 
 
-#check (randFwdDeriv test2 θ 1).dval.expectedValueChange φ
+#check (randFwdDeriv test2 θ 1).fdE φ
   rewrite_by
   unfold test2
-  simp (disch:=sorry) only [rand_simp]
-  simp only [FDRand.bind, FDRand.dpure, rand_simp]
-
-  simp only [push_to_if FDRand.val,
-             push_to_if FDRand.dval,
-             push_to_if (DRand.action · φ),
-             ← push_to_if Rand.pure,
-             rand_simp,ite_true,ite_false,dflip]
-
-  simp only [expectedValue_to_bind]
-
+  conv => 
+    enter [1]
+    simp (config := {zeta:=false}) (disch:=sorry) only [rand_simp]
+  lift_lets
+  simp (config := {zeta:=false}) (disch:=sorry) [rand_simp]
 
 
 

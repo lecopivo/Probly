@@ -97,3 +97,8 @@ theorem ite.arg_tf.randFwdDeriv_rule {c} [Decidable c] (t f : W → Rand α) :
     =
     fun w dw => if c then randFwdDeriv t w dw else randFwdDeriv f w dw := by
   if h : c then simp[h] else simp[h]
+
+
+@[rand_simp,simp]
+theorem Rand.E.arg_x.fderiv_rule (f : X → Rand Y) (φ : Y → Z) (x dx : X) (hf : RandDifferentiable f) :
+    fderiv ℝ (fun x' => (f x').E φ) x dx = ((randFwdDeriv f x dx).fdE φ).2 := sorry

@@ -84,11 +84,8 @@ theorem dpure_action (x dx : X) : (Rand.dpure x dx).action φ = fderiv ℝ φ x 
 ----------------------------------------------------------------------------------------------------
 
 noncomputable
-def expectedValueChange (x : DRand X) (φ : X → Y) : Y :=
+def dE (x : DRand X) (φ : X → Y) : Y := 
   testFunctionExtension x.action φ
-
-noncomputable
-abbrev dE (x : DRand X) (φ : X → Y) : Y := x.expectedValueChange φ
 
 noncomputable
 def dmean (x : DRand X) : X := x.dE id
@@ -97,7 +94,7 @@ def dmean (x : DRand X) : X := x.dE id
 theorem dpure_dE (x dx : X) (φ : X → Y) :
     (dpure x dx).dE φ = fderiv ℝ φ x dx := by
 
-  simp only [bindRD,dE,expectedValueChange,dpure,rand_simp]
+  simp only [bindRD,dE,dpure,rand_simp]
 
   apply testFunctionExtension_ext
   intro φ y; dsimp;
@@ -108,7 +105,7 @@ theorem dpure_dE (x dx : X) (φ : X → Y) :
 theorem bindRD_dE (x : Rand X) (f : X → DRand Y) (φ : Y → Z) :
     (x.bindRD f).dE φ = x.E (fun x' => (f x').dE φ) := by
 
-  simp only [bindRD,dE,expectedValueChange,rand_simp,E,expectedValue]
+  simp only [bindRD,dE,rand_simp,E,expectedValue]
 
   apply testFunctionExtension_ext
   intro φ y
@@ -120,7 +117,7 @@ theorem bindRD_dE (x : Rand X) (f : X → DRand Y) (φ : Y → Z) :
 theorem bindDR_dE (x : DRand X) (f : X → Rand Y) (φ : Y → Z) :
     (x.bindDR f).dE φ = x.dE (fun x' => (f x').E φ) := by
 
-  simp only [bindDR,dE,expectedValueChange,rand_simp, E,expectedValue]
+  simp only [bindDR,dE,rand_simp, E,expectedValue]
 
   apply testFunctionExtension_ext
   intro φ y; symm; dsimp
@@ -139,7 +136,7 @@ theorem bindDR_pure (x : DRand X) (f : X → Y) (φ : Y → Z) :
     =
     x.dE (fun x' => φ (f x')) := by
 
-  simp only [bindDR,dE,expectedValueChange,rand_simp]
+  simp only [bindDR,dE,rand_simp]
   apply testFunctionExtension_ext
   intro φ y; symm; dsimp
   rw[testFunctionExtension_test_function]
@@ -149,7 +146,7 @@ theorem bindDR_pure (x : DRand X) (f : X → Y) (φ : Y → Z) :
 theorem pure_bindRD (x : X) (f : X → DRand Y) :
     (Rand.pure x).bindRD f = f x := by
 
-  simp only [bindRD,dE,expectedValueChange,rand_simp]
+  simp only [bindRD,dE,rand_simp]
 
 
 -- This is the only unusual monadic rule
@@ -168,7 +165,7 @@ theorem dpure_bindDR (x dx : X) (f : X → Rand Y) :
 
   apply ext; intro φ
 
-  simp only [bindDR, dpure, dE, expectedValueChange, randDeriv,E,expectedValue]
+  simp only [bindDR, dpure, dE, randDeriv,E,expectedValue]
 
 
 @[rand_simp, simp]

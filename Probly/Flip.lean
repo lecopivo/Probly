@@ -57,7 +57,7 @@ theorem flip_expectedValue (θ : ℝ) (f : Bool → X) :
 theorem dflip_expectedValueChange (f : Bool → X) :
     dflip.dE f = f true - f false := by
 
-  simp [DRand.dE,DRand.expectedValueChange,dflip]
+  simp [DRand.dE,dflip]
   apply testFunctionExtension_ext
   intro φ y; simp [sub_smul]
 

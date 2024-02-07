@@ -139,9 +139,20 @@ theorem bind_fdE (x : FDRand X) (f : X → FDRand Y) (φ : Y → Z) :
     sorry -- just propagate projection to the integral
 
 
+@[rand_simp,simp]
+theorem FDRand_mk_zero_fdE (x : Rand X) : 
+    (FDRand.mk x 0).fdE φ = (x.E φ, (0 : X)) := by 
+  simp [fdE,DRand.dE]
+  apply testFunctionExtension_ext
+  intro _ _
+  simp [rand_simp,zero_smul]
+
 theorem FDRand_mk_fdE (x : Rand X) (dx : DRand X) (φ : X → Y) :
     (FDRand.mk x dx).fdE φ = (x.E φ, dx.dE φ) := by rfl
 
+
+theorem fdE_as_E {rx : FDRand X} {φ : X → Y} (rx' : Rand X) :
+  rx.fdE φ = rx'.E (fun x => let y := φ x; ((rx.val.pdf' rx'.μ x).toReal • y, y)) := sorry 
 
 @[rand_simp,simp]
 theorem ite_push_fdE {c} [Decidable c] (t f : FDRand X) (φ : X → Y) :
