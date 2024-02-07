@@ -84,7 +84,7 @@ theorem dpure_action (x dx : X) : (Rand.dpure x dx).action φ = fderiv ℝ φ x 
 ----------------------------------------------------------------------------------------------------
 
 noncomputable
-def dE (x : DRand X) (φ : X → Y) : Y := 
+def dE (x : DRand X) (φ : X → Y) : Y :=
   testFunctionExtension x.action φ
 
 noncomputable
@@ -219,3 +219,30 @@ theorem add_dE (x y : DRand X) (φ : X → Y) :
     (x + y).dE φ
     =
     x.dE φ + y.dE φ := sorry
+
+
+----------------------------------------------------------------------------------------------------
+-- Measure -----------------------------------------------------------------------------------------
+----------------------------------------------------------------------------------------------------
+
+/-- `x` can be expressed as a signed measure -/
+def IsMeasure (x : DRand X) : Prop :=
+  ∃ μ : SignedMeasure X, False
+    -- ∀ (φ : X → ℝ), x.action φ = ∫ x', φ x' ∂μ
+
+open Classical in
+/-- If `x` can be expressed as a measure return it otherwise return zero. -/
+noncomputable
+def measure (x : DRand X) : SignedMeasure X :=
+  if h : x.IsMeasure then
+    choose h
+  else
+    0
+
+----------------------------------------------------------------------------------------------------
+-- Density function w.r.t to a random variable -----------------------------------------------------
+----------------------------------------------------------------------------------------------------
+
+noncomputable
+def density (x : DRand X) (μ : Measure X) : X → ℝ :=
+  x.measure.rnDeriv μ

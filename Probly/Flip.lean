@@ -29,10 +29,23 @@ def dflip : DRand Bool := {
 
 
 @[rand_simp,simp]
+theorem flip.pdf_wrt_flip (θ θ' : ℝ) :
+    (flip θ).pdf' (flip θ').μ
+    =
+    fun b => if b then θ / θ' else (1-θ) / (1-θ') := by sorry
+
+@[rand_simp,simp]
+theorem dflip.density_wrt_flip (θ : ℝ) :
+    dflip.density (flip θ).μ
+    =
+    fun b => if b then 1 / θ else 1 / (θ-1) := by sorry
+
+
+@[rand_simp,simp]
 theorem flip.pdf (x : ℝ) (hx : x ∈ Set.Icc 0 1) :
     (flip x).pdf' .count
     =
-    fun b => if b then .ofReal x else .ofReal (1-x) := sorry
+    fun b => if b then x else (1-x) := by sorry
 
 
 variable

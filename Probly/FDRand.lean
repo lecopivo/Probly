@@ -124,12 +124,14 @@ theorem fdpure_fdE (x dx : X) (φ : X → Y) :
 
   simp (disch:=sorry) only [fdpure,fdE,rand_simp]
 
+
+def finalize (x : (X×X)×(X×X)) : X×X := let y := x; (y.1.1,y.2.1+y.1.2)
+
 @[rand_simp,simp]
 theorem bind_fdE (x : FDRand X) (f : X → FDRand Y) (φ : Y → Z) :
     ((x.bind f).fdE φ)
     =
-    let a := x.fdE (fun x' => (f x').fdE φ)
-    (a.1.1,a.2.1+a.1.2) := by
+    finalize (x.fdE (fun x' => (f x').fdE φ)) := by
 
   simp (disch:=sorry) only [bind,fdpure,fdE,rand_simp]
   ext
@@ -140,8 +142,8 @@ theorem bind_fdE (x : FDRand X) (f : X → FDRand Y) (φ : Y → Z) :
 
 
 @[rand_simp,simp]
-theorem FDRand_mk_zero_fdE (x : Rand X) : 
-    (FDRand.mk x 0).fdE φ = (x.E φ, (0 : X)) := by 
+theorem FDRand_mk_zero_fdE (x : Rand X) :
+    (FDRand.mk x 0).fdE φ = (x.E φ, (0 : X)) := by
   simp [fdE,DRand.dE]
   apply testFunctionExtension_ext
   intro _ _
@@ -151,8 +153,10 @@ theorem FDRand_mk_fdE (x : Rand X) (dx : DRand X) (φ : X → Y) :
     (FDRand.mk x dx).fdE φ = (x.E φ, dx.dE φ) := by rfl
 
 
+def finalizeWith (p q : X → ℝ) (φ : X → Y) (x : X) : Y×Y := let y := φ x; (p x • y, q x • y)
+
 theorem fdE_as_E {rx : FDRand X} {φ : X → Y} (rx' : Rand X) :
-  rx.fdE φ = rx'.E (fun x => let y := φ x; ((rx.val.pdf' rx'.μ x).toReal • y, y)) := sorry 
+  rx.fdE φ = rx'.E (finalizeWith (rx.val.pdf' rx'.μ) (rx.dval.density rx'.μ) φ) := sorry
 
 @[rand_simp,simp]
 theorem ite_push_fdE {c} [Decidable c] (t f : FDRand X) (φ : X → Y) :
@@ -167,3 +171,8 @@ theorem expectedValueAndChange_as_fdmean (x : FDRand X) (φ : X → Y) :
 
   simp (disch:=sorry) only [rand_simp,mean,fdE,fdmean,bind,fdpure,id]
   simp
+
+
+@[rand_simp,simp]
+theorem finalize_pull_E (x : Rand ((X×X)×(X×X))) :
+    finalize x.mean = (let x' ~ x; pure (finalize x')).mean := sorry

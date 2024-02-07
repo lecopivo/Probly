@@ -249,12 +249,12 @@ end ExpectedValue
 
 /-- Probability density function of `x` w.r.t. the measure `ν`. -/
 noncomputable
-def pdf' (x : Rand X) (ν : Measure X) : X → ℝ≥0∞ :=
-  Measure.rnDeriv x.μ ν
+def pdf' (x : Rand X) (ν : Measure X) : X → ℝ :=
+  fun x' => (Measure.rnDeriv x.μ ν x').toReal
 
 /-- Probability density function of `x` w.r.t. the intrinsic volume measure. -/
 noncomputable
-abbrev pdf {X} [MeasureSpace X] (x : Rand X) : X → ℝ≥0∞ := x.pdf' MeasureSpace.volume
+abbrev pdf {X} [MeasureSpace X] (x : Rand X) : X → ℝ := x.pdf' MeasureSpace.volume
 
 
 /-- To actually compute values of pdf use this version of pdf where you can specify the scalar type.
@@ -266,5 +266,5 @@ abbrev cpdf' {X} [MeasureSpace X] (R : Type) [IsROrC R] (x : Rand X) (ν : Measu
 
 @[rand_simp,simp]
 theorem bind_pdf (ν : Measure Y) (x : Rand X) (f : X → Rand Y) :
-    (x.bind f).pdf' ν = fun y => ∫⁻ x', ((f x').pdf' ν y) ∂x.μ := by
+    (x.bind f).pdf' ν = fun y => ∫ x', ((f x').pdf' ν y) ∂x.μ := by
   funext y; simp[Rand.pdf',Rand.bind,Rand.pure]; sorry
