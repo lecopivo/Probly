@@ -23,7 +23,6 @@ def test (θ : ℝ) : Rand ℝ :=
     Rand.pure (-θ/2)
 
 
-set_option trace.Meta.Tactic.simp.rewrite true in
 noncomputable
 def dtest :=
   derive_mean_fwdDeriv

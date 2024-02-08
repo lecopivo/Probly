@@ -248,5 +248,9 @@ def density (x : DRand X) (μ : Measure X) : X → ℝ :=
   x.measure.rnDeriv μ
 
 @[simp,rand_simp]
+theorem density_of_zero (μ : Measure X):
+    (0 : DRand X).density μ = 0 := sorry
+
+@[simp,rand_simp]
 theorem density_smul (x : DRand X) (s : ℝ) (μ : Measure X) :
     (s • x).density μ = fun x' => x.density μ x' := sorry

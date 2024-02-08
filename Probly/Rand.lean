@@ -257,6 +257,9 @@ def pdf' (x : Rand X) (ν : Measure X) : X → ℝ :=
 noncomputable
 abbrev pdf {X} [MeasureSpace X] (x : Rand X) : X → ℝ := x.pdf' MeasureSpace.volume
 
+@[rand_simp,simp]
+theorem pdf_wrt_self (x : Rand ℝ) :
+    x.pdf' x.μ = 1 := sorry
 
 /-- To actually compute values of pdf use this version of pdf where you can specify the scalar type.
 Transformation rules should trun it into a computable function. -/

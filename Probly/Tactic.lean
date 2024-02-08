@@ -10,12 +10,10 @@ namespace Probly
 open Lean Meta in
 simproc_decl push_fdE_into_let (FDRand.fdE _ _) := fun e => do
   unless (e.isAppOfArity ``FDRand.fdE 7) do return .visit { expr := e}
-  IO.println s!"running push_let_fdE on {← ppExpr e}"
   let f := e.getArg! 5
   match f with
   | .letE name type val body nonDep =>
     let e' := .letE name type val (e.setArg 5 body) nonDep
-    IO.println s!"result: {← ppExpr e'}"
     return .visit { expr := e' }
   | _ => return .visit { expr := e}
 

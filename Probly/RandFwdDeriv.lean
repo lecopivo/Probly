@@ -38,12 +38,11 @@ theorem randFwdDeriv_comp (f : Y → Rand Z) (g : X → Y)
     randFwdDeriv (fun x : X => (f (g x)))
     =
     fun x dx =>
-      let y := g x -- todo: use normal forward derivative
-      let dy := fderiv ℝ g x dx
-      randFwdDeriv f y dy := by
+      let ydy := fwdDeriv ℝ g x dx
+      randFwdDeriv f ydy.1 ydy.2 := by
 
   funext x dx
-  unfold randFwdDeriv
+  unfold randFwdDeriv fwdDeriv
   simp (disch := first | apply hf | apply hg) only [rand_simp,randDeriv_comp]
 
 
